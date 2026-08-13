@@ -6,20 +6,20 @@
 # -----------------------------------------------------------------------
 
 feed:
-  title: "My Personalized News"
+  title: "Marks Personalized News"
   description: "Curated news based on my interests"
   # Set this to your future GitHub Pages URL, e.g.
   # https://YOUR_USERNAME.github.io/YOUR_REPO/feed.xml
-  link: "https://YOUR_USERNAME.github.io/YOUR_REPO/feed.xml"
+  link: "https://markvdbrom1.github.io/newsfeed/feed.xml"
   # Max total items kept in the final feed, across all keywords
   max_items: 60
   # Drop anything older than this many days
-  max_age_days: 3
+  max_age_days: 7
   # Max items pulled per keyword, before dedup/trim
   items_per_keyword: 10
   # Language/region passed to Google News (affects results & wording)
-  language: "en-US"
-  country: "US"
+  language: "en-UK"
+  country: "NL"
 
 # One keyword or phrase per line. Phrases are matched as Google News
 # search queries, so you can use quotes, OR, site:, -exclusions, etc.
@@ -31,5 +31,13 @@ feed:
 #   - site:nature.com quantum computing
 keywords:
   - "generative AI"
-  - "climate policy"
-  - "Formula 1"
+  - "Cybersecurity"
+  - "Information Security"
+  - "Healthcare"
+  - "Hospital"
+  - "Wine"
+  - "IT infrastructure"
+  - "Metal music"
+  - "Leadership"
+  - "Change management"
+  - "IT leadership"
