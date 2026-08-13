@@ -21,10 +21,23 @@ from email.utils import format_datetime
 from urllib.parse import quote_plus
 
 import feedparser
+import requests
 import yaml
 from feedgen.feed import FeedGenerator
 
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={query}&hl={lang}&gl={country}&ceid={country}:{lang_short}"
+
+# Google (and many sites) will silently reject or empty-out requests that
+# don't look like they come from a browser. feedparser's default fetch uses
+# a bare urllib request with no User-Agent, which is a common cause of
+# feeds coming back with zero entries. We fetch with `requests` and a
+# real-looking header instead, then hand the raw bytes to feedparser.
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
+}
 
 
 def load_config(path):
@@ -76,13 +89,25 @@ def parse_published(entry):
 def fetch_keyword_items(keyword, cfg):
     url = build_query_url(keyword, cfg["feed"]["language"], cfg["feed"]["country"])
     try:
-        parsed = feedparser.parse(url)
+        resp = requests.get(url, headers=REQUEST_HEADERS, timeout=15)
+        resp.raise_for_status()
     except Exception as e:
-        print(f"  [warn] failed to fetch '{keyword}': {e}", file=sys.stderr)
+        print(f"  [warn] HTTP request failed for '{keyword}': {e}", file=sys.stderr)
         return []
 
-    if getattr(parsed, "bozo", False) and not parsed.entries:
-        print(f"  [warn] no results / parse issue for '{keyword}'", file=sys.stderr)
+    parsed = feedparser.parse(resp.content)
+
+    print(
+        f"  '{keyword}': HTTP {resp.status_code}, "
+        f"{len(resp.content)} bytes, {len(parsed.entries)} raw entries"
+        + (f", bozo={parsed.bozo} ({parsed.bozo_exception})" if getattr(parsed, "bozo", False) else "")
+    )
+
+    if not parsed.entries:
+        # Dump a short snippet so we can see *why* — e.g. a Google
+        # consent/CAPTCHA page instead of the actual RSS.
+        snippet = resp.text[:300].replace("\n", " ")
+        print(f"  [warn] 0 entries for '{keyword}'. Response snippet: {snippet}", file=sys.stderr)
         return []
 
     items = []
@@ -108,8 +133,17 @@ def collect_all_items(cfg):
             # First occurrence wins; later duplicate keywords just get skipped
             all_items.setdefault(item["id"], item)
 
+    print(f"\nTotal unique items across all keywords (pre-date-filter): {len(all_items)}")
+
     cutoff = datetime.now(tz=timezone.utc) - timedelta(days=cfg["feed"]["max_age_days"])
     fresh = [it for it in all_items.values() if it["published"] >= cutoff]
+    dropped = len(all_items) - len(fresh)
+    if dropped:
+        print(
+            f"Dropped {dropped} item(s) older than max_age_days={cfg['feed']['max_age_days']} "
+            f"(cutoff: {cutoff.isoformat()}). Increase max_age_days in config.yaml if this seems "
+            f"too aggressive."
+        )
     fresh.sort(key=lambda it: it["published"], reverse=True)
     return fresh[: cfg["feed"]["max_items"]]
 
