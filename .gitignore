@@ -1,6 +1,7 @@
 # Pipeline working files — generated daily, not meant to be committed
 podcast_data/
 output/
+docs
 
 # Python
 __pycache__/
