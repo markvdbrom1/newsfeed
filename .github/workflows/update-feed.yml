@@ -1,4 +1,4 @@
-name: Update personalized RSS feed
+name: Update personalized RSS feed and build podcast
 
 on:
   schedule:
@@ -9,6 +9,8 @@ on:
     paths:
       - "config.yaml"
       - "generate_feed.py"
+      - "ingest_feed.py"
+      - "write_script.py"
       - ".github/workflows/update-feed.yml"
   workflow_dispatch: {}  # lets you trigger a run manually from the Actions tab
 
@@ -31,7 +33,24 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Generate feed
-        run: python generate_feed.py --config config.yaml --out docs/feed.xml
+        run: python generate_feed.py --config config.yaml --out output/feed.xml
+
+      # --- Podcast pipeline steps ---
+
+      - name: Ingest feed into pipeline format
+        run: python ingest_feed.py
+        env:
+          PODCAST_FEED_PATH: output/feed.xml
+
+      - name: Write podcast script
+        run: python write_script.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PODCAST_NAME: "Your Daily Briefing"
+
+      # TTS + audio publishing steps will go here once we build them
+
+      # --- Commit whatever should be public ---
 
       - name: Commit updated feed
         run: |
