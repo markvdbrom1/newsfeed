@@ -1,0 +1,15 @@
+# Pipeline working files — generated daily, not meant to be committed
+podcast_data/
+output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment variables / secrets (never commit API keys)
+.env
+
+# OS cruft
+.DS_Store
